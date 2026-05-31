@@ -274,6 +274,23 @@ export interface GuardScanResponse {
   matched_patterns?: string[]
 }
 
+// Guard explainability (issue #77). Per-token attribution returned by SHAP/LIME.
+export interface GuardTokenAttribution {
+  token: string
+  attribution: number
+  char_span: [number, number]
+}
+
+export interface GuardExplainResponse {
+  predicted_label: string
+  predicted_proba: number
+  base_value: number
+  tokens: GuardTokenAttribution[]
+  method: 'shap' | 'lime'
+  model_version: string
+  latency_ms: number
+}
+
 export const guardApi = {
   scan: async (prompt: string): Promise<GuardScanResponse> => {
     const { data } = await api.post('/guard/scan', { prompt })
@@ -285,6 +302,17 @@ export const guardApi = {
     ensureNumberField(responseData, 'confidence', 'Guard scan')
     ensureStringField(responseData, 'reasoning', 'Guard scan')
     return responseData as unknown as GuardScanResponse
+  },
+  explain: async (
+    text: string,
+    opts: { method?: 'shap' | 'lime'; maxEvals?: number } = {},
+  ): Promise<GuardExplainResponse> => {
+    const { data } = await api.post('/guard/explain', {
+      text,
+      method: opts.method ?? 'shap',
+      max_evals: opts.maxEvals ?? 200,
+    })
+    return data
   },
 }
 
