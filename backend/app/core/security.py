@@ -15,6 +15,23 @@ from app.core.database import get_db
 if TYPE_CHECKING:
     from app.models.user import User  # Prevent circular imports during runtime
 
+# --- Compatibility patch for bcrypt 4.0.0+ and passlib ---
+import bcrypt
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type("About", (object,), {"__version__": bcrypt.__version__})
+
+_original_hashpw = bcrypt.hashpw
+def _safe_hashpw(password, salt):
+    if isinstance(password, str):
+        password_bytes = password.encode("utf-8")
+    else:
+        password_bytes = password
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    return _original_hashpw(password_bytes, salt)
+bcrypt.hashpw = _safe_hashpw
+# ---------------------------------------------------------
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
 

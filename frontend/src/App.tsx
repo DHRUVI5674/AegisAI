@@ -16,7 +16,17 @@ import { Toaster } from 'react-hot-toast'
 import RagChat from './pages/RagChat'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, _hasHydrated } = useAuthStore()
+
+  // Wait for Zustand to rehydrate from localStorage before deciding
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />
 }
 

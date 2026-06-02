@@ -33,6 +33,10 @@ from app.models.document import Document
 from app.schemas.user import UserCreate, UserResponse, UserUpdateSchema, Token, UserStatsResponse
 
 
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
@@ -62,7 +66,8 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     Raises:
         HTTPException: If the email is already registered or registration fails.
     """
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    normalized_email = _normalize_email(user_data.email)
+    existing_user = db.query(User).filter(User.email == normalized_email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -71,7 +76,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
     try:
         user = User(
-            email=user_data.email,
+            email=normalized_email,
             hashed_password=get_password_hash(user_data.password),
             full_name=user_data.full_name,
             company_name=user_data.company_name,
@@ -105,7 +110,8 @@ def login(
     Raises:
         HTTPException: If the credentials are invalid or the user is inactive.
     """
-    user = db.query(User).filter(User.email == form_data.username).first()
+    normalized_email = _normalize_email(form_data.username)
+    user = db.query(User).filter(User.email == normalized_email).first()
 
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(

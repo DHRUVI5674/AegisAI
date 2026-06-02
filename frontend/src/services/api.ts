@@ -17,13 +17,17 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Handle 401 errors
+// Handle 401 errors — only redirect if not already on an auth page
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout()
-      window.location.href = '/login'
+      const currentPath = window.location.pathname
+      const isAuthPage = currentPath === '/login' || currentPath === '/register'
+      if (!isAuthPage) {
+        useAuthStore.getState().logout()
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
@@ -112,8 +116,9 @@ function ensureStringArrayField(
 // Auth API
 export const authApi = {
   login: async (email: string, password: string) => {
+    const normalizedEmail = email.trim().toLowerCase()
     const formData = new URLSearchParams()
-    formData.append('username', email)
+    formData.append('username', normalizedEmail)
     formData.append('password', password)
     const { data } = await api.post('/auth/login', formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -126,13 +131,16 @@ export const authApi = {
     full_name?: string
     company_name?: string
   }) => {
-    const { data } = await api.post('/auth/register', userData)
+    const normalizedData = {
+      ...userData,
+      email: userData.email.trim().toLowerCase(),
+    }
+    const { data } = await api.post('/auth/register', normalizedData)
     return data
   },
   getMe: async (token?: string) => {
-    const { data } = await api.get('/auth/me', {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    })
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+    const { data } = await api.get('/auth/me', { headers })
     return data
   },
 }
@@ -329,3 +337,4 @@ export const analyticsApi = {
 }
 
 export default api
+

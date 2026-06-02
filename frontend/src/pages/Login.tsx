@@ -20,7 +20,8 @@ export default function Login() {
 
     try {
       const tokenData = await authApi.login(email, password)
-      setAuth(tokenData.access_token, null)
+      // Fetch user profile directly using the token before setting auth state,
+      // so we set auth atomically in one shot and avoid any race conditions.
       const user = await authApi.getMe(tokenData.access_token)
       setAuth(tokenData.access_token, user)
       navigate('/')

@@ -70,6 +70,26 @@ def test_login_success(client):
     assert response_data["token_type"] == "bearer"
 
 
+def test_login_email_case_insensitive(client):
+    """Test login works even if email case differs from registration."""
+    register_data = {
+        "email": "CaseSensitive@Example.com",
+        "password": VALID_TEST_PASSWORD
+    }
+    client.post("/api/v1/auth/register", json=register_data)
+    response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": "casesensitive@example.com",
+            "password": register_data["password"]
+        }
+    )
+    assert response.status_code == 200
+    response_data = response.json()
+    assert "access_token" in response_data
+    assert response_data["token_type"] == "bearer"
+
+
 def test_login_wrong_password(client):
     """Test login fails with incorrect password."""
     register_data = {
